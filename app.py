@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-import uvicorn
 
 app = FastAPI()
 
@@ -11,9 +10,9 @@ class MyRequest(BaseModel):
 @app.post("/process")
 async def process(request: MyRequest):
     input_text = request.text
-    # 🔥 Here you call your model functions
     output = f"Received and processed: {input_text}"
     return {"result": output}
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.get("/")
+async def root():
+    return {"message": "Welcome to TextImages API!"}
