@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Example input model
 class MyRequest(BaseModel):
     text: str
 
@@ -13,6 +12,6 @@ async def process(request: MyRequest):
     output = f"Received and processed: {input_text}"
     return {"result": output}
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Welcome to TextImages API!"}
