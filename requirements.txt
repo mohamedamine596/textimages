@@ -1,2 +1,8 @@
 fastapi
 uvicorn
+diffusers
+transformers
+accelerate
+invisible_watermark
+torch
+pillow

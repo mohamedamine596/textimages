@@ -17,62 +17,62 @@ import mediapy as media
 import random
 import sys
 import torch
+from PIL import Image
 
 from diffusers import DiffusionPipeline
 
+# Set device based on available memory
+device = "cpu"  # Use CPU as default for limited VRAM systems
+
 pipe = DiffusionPipeline.from_pretrained(
     "stabilityai/stable-diffusion-xl-base-1.0",
-    torch_dtype=torch.float16,
+    torch_dtype=torch.float32,  # Use float32 for CPU
     use_safetensors=True,
-    variant="fp16",
-    )
+)
+
+pipe.enable_attention_slicing()  # This helps with memory usage
+pipe.set_progress_bar_config(disable=True)
+
+# Don't move to CUDA when using CPU offloading as it conflicts
+# pipe.to("cuda") - removed
 
 if use_refiner:
   refiner = DiffusionPipeline.from_pretrained(
       "stabilityai/stable-diffusion-xl-refiner-1.0",
       text_encoder_2=pipe.text_encoder_2,
       vae=pipe.vae,
-      torch_dtype=torch.float16,
+      torch_dtype=torch.float32,  # Use float32 for CPU
       use_safetensors=True,
-      variant="fp16",
   )
 
-  refiner = refiner.to("cuda")
+  # Remove GPU usage
+  # refiner.to("cuda") - removed
 
-  pipe.enable_model_cpu_offload()
-else:
-  pipe = pipe.to("cuda")
+# Use a more concise prompt which works better for image generation
+# Image generation models work better with more concrete descriptions
+prompt = "Modern luxury dream home, mountain view, sleek architecture, large windows, open floor plan, cozy interior with fireplace"
 
-prompt = "a photo of Pikachu fine dining with a view to the Eiffel Tower"
-#prompt = ""
-#prompt = "a photo of beautiful shri ram and sita "
-#prompt ="19-year-old woman” by Steve McCurry, 35mm, F/2.8, insanely detailed and intricate, character, hypermaximalist, elegant, ornate, beautiful, exotic, revealing, appealing, attractive, amative, hyper-realistic, super detailed, popular on Flickr"
-#prompt = "Full body portrait of a beutiful and sexy young woman. She is swedish and wears a Skim dress. She is 18. Large eyes, large lips, small nose, summer evening. Looks like Christina Hendricks. Photograph taken with Canon EOS R3."
-#prompt = "Portrait of a beutiful young woman. She is swedish and wears a tight black dress. She is 18."
-#prompt = "A photo of beautiful harry potter"
-#prompt="solar eclipse!, Nicolas Delort, splash art, reverse graffiti, Alex Maleev, Yoji Shinkawa, professional ominous concept art, by artgerm and greg rutkowski, an intricate, elegant, highly detailed digital painting, concept art, smooth, sharp focus, illustration, in the style of simon stalenhag, wayne barlowe, and igor kieryluk."
-#prompt ="Fairy multilayered tree house in world tree, decorating flowers, mirror water, mysterious fog, scatter drawing, Complex, multilayered fortress, sunset, another world, lingt art, detail, 32k resolution, oil painting, hyperrealism, Award-winning"
-#prompt = "garden, 5'3 feet girl, indian skin body, black eye lens, little bit long hair, school dress that include blue frock and half sleeves shirt that has white line on blue shirt, left side VBES name badge, white socks, black girl shoe"
-#prompt="Palace, 5'8 feet man, american skin body, blue eye lens, medium hair, white shirt, black blazzer that include black pant, also white horse"
-#prompt="Imagine your ideal dream home, a place where you can create the perfect living environment for yourself and your family. Describe this dream home in vivid detail, from its location and architectural style to its interior design and features. What makes it your dream home? How does it reflect your personal tastes, lifestyle, and aspirations? Explore every aspect of this dream home, from the layout of the rooms to the outdoor spaces and amenities. Let your imagination run wild and paint a picture of your dream home that captures your vision of the perfect place to live."
-#prompt= "Beyond the walls of your dream home, what does your outdoor paradise look like? Describe the landscape design, gardens, and outdoor amenities that surround your dream house. Is there a sparkling pool, a lush green lawn, or a tranquil patio where you can relax? How does the outdoor space enhance your overall living experience?"
-#prompt="human genome labrotary where a scientist making experiment on pink colour gene in white cat and light blue colour dog."
+# Use a smaller height and width to reduce memory usage
+height = 512  # Default is 1024
+width = 512   # Default is 1024
+
 seed = random.randint(0, sys.maxsize)
 
 images = pipe(
-    prompt = prompt,
-    output_type = "latent" if use_refiner else "pil",
-    generator = torch.Generator("cuda").manual_seed(seed),
-    ).images
+    prompt=prompt,
+    height=height,
+    width=width,
+    output_type="latent" if use_refiner else "pil",
+    generator=torch.Generator().manual_seed(seed),  # Remove cuda requirement
+).images
 
 if use_refiner:
   images = refiner(
-      prompt = prompt,
-      image = images,
-      ).images
+      prompt=prompt,
+      image=images,
+  ).images
 
 print(f"Prompt:\t{prompt}\nSeed:\t{seed}")
-media.show_images(images)
+images[0].show()
 images[0].save("output.jpg")
 print('')
-
