@@ -6,3 +6,7 @@ accelerate
 invisible_watermark
 torch
 pillow
+requests 
+fastapi 
+uvicorn
+streamlit
