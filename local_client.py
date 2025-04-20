@@ -2,7 +2,7 @@ import requests, base64
 from pathlib import Path
 
 # Replace with your actual ngrok URL from Colab
-NGROK_URL = "https://da1d-34-87-159-177.ngrok-free.app/"
+NGROK_URL = "https://17d0-34-124-254-60.ngrok-free.app"
 ENDPOINT = f"{NGROK_URL}/generate-image"
 
 def generate_image_remote(prompt: str, width: int = 512, height: int = 512, seed: int = None) -> Path:
