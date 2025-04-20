@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 import random
 import sys
@@ -78,7 +78,6 @@ async def generate_image(request: ImageRequest, background_tasks: BackgroundTask
     if pipe is None:
         load_models()
     
-    # Set seed if provided, otherwise generate random seed
     if request.seed is None:
         seed = random.randint(0, sys.maxsize)
     else:
@@ -87,7 +86,6 @@ async def generate_image(request: ImageRequest, background_tasks: BackgroundTask
     use_refiner = request.use_refiner
     
     try:
-        # Generate the image
         images = pipe(
             prompt=request.prompt,
             height=request.height,
@@ -102,30 +100,29 @@ async def generate_image(request: ImageRequest, background_tasks: BackgroundTask
                 image=images,
             ).images
 
-        # Convert PIL image to base64 string
         buffered = io.BytesIO()
         images[0].save(buffered, format="PNG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
 
-        # Save image in images folder (create if not exists)
-        os.makedirs("images", exist_ok=True)
+        # Create folder "images/google colabs" if it doesn't exist
+        folder_path = "images/google colabs"
+        os.makedirs(folder_path, exist_ok=True)
         filename = f"generated_{seed}.png"
-        filepath = f"images/{filename}"
+        filepath = f"{folder_path}/{filename}"
         images[0].save(filepath)
         
-        # Return the URL path that can be used to access the image
-        image_url = f"/images/{filename}"
+        image_url = f"/images/google colabs/{filename}"
         
         return {
             "image": img_str,
             "prompt": request.prompt,
             "seed": seed,
             "filename": filepath,
-            "image_url": image_url  # Add this for direct access
+            "image_url": image_url
         }
     
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root():
@@ -133,5 +130,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    # Run the API server on port 8000
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5000)
